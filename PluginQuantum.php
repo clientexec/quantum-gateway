@@ -110,7 +110,7 @@ class PluginQuantum extends GatewayPlugin
            /*T*/"Check CVV2"/*/T*/ => array (
                                 "type"          =>"yesno",
                                 "description"   =>/*T*/"Select YES if you want to accept CVV2 for this plugin."/*/T*/,
-                                "value"         =>"0"
+                                "value"         =>"1"
                                )
         );
 
