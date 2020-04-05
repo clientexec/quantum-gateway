@@ -102,11 +102,6 @@ class PluginQuantum extends GatewayPlugin
                                 'description'   =>lang('No description'),
                                 'value'         =>'1'
                                ),
-            lang('30 Day Billing') => array (
-                                'type'          =>'hidden',
-                                'description'   =>lang('Select YES if you want ClientExec to treat monthly billing by 30 day intervals.  If you select NO then the same day will be used to determine intervals.'),
-                                'value'         =>'0'
-                               ),
            lang("Check CVV2") => array (
                                 "type"          =>"yesno",
                                 "description"   =>lang("Select YES if you want to accept CVV2 for this plugin."),
@@ -119,7 +114,7 @@ class PluginQuantum extends GatewayPlugin
 
     function singlepayment($params)
     {
-        require_once 'library/CE/NE_Network.php';
+        include_once 'library/CE/NE_Network.php';
 
         // VbV/MCSC and Dialverify (only used in signup) require some interaction from the user with the provider server,
         // so if those aren't set up then use autopayment which is silent.
@@ -129,7 +124,7 @@ class PluginQuantum extends GatewayPlugin
 
         $params = CE_Lib::_array_map_recursive(array('CE_Lib', 'escapeHTMLAttributeValue'), $params);
 
-        $callbackURL = mb_substr($params['clientExecURL'],-1,1) == '//' ? $params['clientExecURL']."plugins/gateways/quantum/callback.php" : $params['clientExecURL']."/plugins/gateways/quantum/callback.php";
+        $callbackURL = mb_substr($params['clientExecURL'], -1, 1) == '//' ? $params['clientExecURL']."plugins/gateways/quantum/callback.php" : $params['clientExecURL']."/plugins/gateways/quantum/callback.php";
         $CCMo = mb_substr($params['userCCExp'], 0, 2);
         $CCYear = mb_substr($params['userCCExp'], 3);
         $useMaxmind = $params['plugin_quantum_Use Maxmind']? 1 : 2;
@@ -156,7 +151,7 @@ class PluginQuantum extends GatewayPlugin
                ."<input type=\"hidden\" name=\"ccnum\" value=\"{$params['userCCNumber']}\">\n";
 
         // TAKEN FROM: http://www.quantumgateway.com/view_developer.php?Cat1=2
-        if($params['userCCCVV2'] != ''){
+        if ($params['userCCCVV2'] != '') {
             // CVV - CVV2
             //     Security code on the back or front of the credit card
             $html .= "<input type=\"hidden\" name=\"CVV2\" value=\"{$params['userCCCVV2']}\">\n";
@@ -189,8 +184,8 @@ class PluginQuantum extends GatewayPlugin
 
     function autopayment($params)
     {
-        require_once 'modules/billing/models/class.gateway.plugin.php';
-        require_once 'library/CE/NE_Network.php';
+        include_once 'modules/billing/models/class.gateway.plugin.php';
+        include_once 'library/CE/NE_Network.php';
 
         $requestArr = array(
             'gwlogin'               => $params['plugin_quantum_Quantum Gateway Username'],
@@ -214,7 +209,7 @@ class PluginQuantum extends GatewayPlugin
             'FNAME'                 => $params['userFirstName'],
             'LNAME'                 => $params['userLastName'],
             'MAXMIND'               => ($params['plugin_quantum_Use Maxmind'] && $params['isSignup'])? 1 : 2,
-            'post_return_url'       => mb_substr($params['clientExecURL'],-1,1) == '//' ? $params['clientExecURL']."plugins/gateways/quantum/callback.php" : $params['clientExecURL']."/plugins/gateways/quantum/callback.php",
+            'post_return_url'       => mb_substr($params['clientExecURL'], -1, 1) == '//' ? $params['clientExecURL']."plugins/gateways/quantum/callback.php" : $params['clientExecURL']."/plugins/gateways/quantum/callback.php",
             'ResponseMethod'        => 'GET',   // not sure this is needed here, but just in case...
         );
 
@@ -248,7 +243,7 @@ class PluginQuantum extends GatewayPlugin
             'CVV2=XXX_MASKED_XXX&'        => '/CVV2=\d+&/'
         );
 
-        $response = NE_Network::curlRequest($this->settings, 'https://secure.quantumgateway.com/cgi/clientexecT.php', $request, false, true, false, false, false, $masks);
+        $response = NE_Network::curlRequest($this->settings, 'https://secure.quantumgateway.com/cgi/clientexecT.php', $request, false, true, false, 'POST', false, $masks);
 
         // response is a "|"-separated string for payments, and just a string for refunds...
         if (!$isRefund) {
@@ -290,7 +285,8 @@ class PluginQuantum extends GatewayPlugin
         return $this->autopayment($params);
     }
 
-    function ShowTransactionDetails($params){
+    function ShowTransactionDetails($params)
+    {
         $GatewayKey = $params['plugin_quantum_Quantum Gateway RestrictKey'];
 
         $RequestType = "ShowTransactionDetails";
@@ -301,7 +297,8 @@ class PluginQuantum extends GatewayPlugin
         return $this->XMLrequest($params, $GatewayKey, $RequestType, $paramsArray);
     }
 
-    function XMLrequest($params, $GatewayKey, $RequestType, $paramsArray){
+    function XMLrequest($params, $GatewayKey, $RequestType, $paramsArray)
+    {
         $url = "https://secure.quantumgateway.com/cgi/xml_requester.php";
 
         $xml  = "<QGWRequest>\n";
@@ -311,30 +308,48 @@ class PluginQuantum extends GatewayPlugin
         $xml .= "    </Authentication>\n";
         $xml .= "    <Request>\n";
         $xml .= "        <RequestType>".$RequestType."</RequestType>\n";
-        foreach($paramsArray AS $paramName => $paramValue){
+        foreach ($paramsArray as $paramName => $paramValue) {
             $xml .= "        <".$paramName;
-            if($paramValue != ''){
+            if ($paramValue != '') {
                 $xml .= ">".$paramValue."</".$paramName.">\n";
-            }else{
+            } else {
                 $xml .= "/>\n";
             }
         }
         $xml .= "    </Request>\n";
         $xml .= "</QGWRequest>\n";
 
-        $header  = array("POST ".$url." HTTP/1.1",
-                         "Content-Length: ".strlen($xml),
-                         "Content-type: text/xml; charset=UTF8",
-                         "Connection: close; Keep-Alive",
-                        );
+        /*$header  = array(
+            "POST ".$url." HTTP/1.1",
+            "Content-Length: ".strlen($xml),
+            "Content-type: text/xml; charset=UTF8",
+            "Connection: close; Keep-Alive",
+        );*/
 
-        $response = NE_Network::curlRequest($this->settings, $url, $xml, $header, true);
+        $mask = array(
+            '<GatewayLogin>XXX MASKED XXX</GatewayLogin>' => '/<GatewayLogin>(.*)<\/GatewayLogin>/',
+            '<GatewayKey>XXX MASKED XXX</GatewayKey>'     => '/<GatewayKey>(.*)<\/GatewayKey>/'
+        );
+        $response = NE_Network::curlRequest($this->settings, $url, $xml, false, true, false, 'POST', false, $mask);
 
-        if ($response){
-            $response = XmlFunctions::xmlize($response);
+        if ($response) {
+            $response = XmlFunctions::xmlize(
+                str_replace(
+                    array(
+                        '&',
+                        'á','é','í','ó','ú',
+                        'Á','É','Í','Ó','Ú'
+                    ),
+                    array(
+                        '&amp;',
+                        'a','e','i','o','u',
+                        'A','E','I','O','U'
+                    ),
+                    $response
+                )
+            );
         }
 
         return $response;
     }
 }
-?>
