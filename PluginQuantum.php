@@ -243,7 +243,7 @@ class PluginQuantum extends GatewayPlugin
             'CVV2=XXX_MASKED_XXX&'        => '/CVV2=\d+&/'
         );
 
-        $response = NE_Network::curlRequest($this->settings, 'https://secure.quantumgateway.com/cgi/clientexecT.php', $request, false, true, false, 'POST', false, $masks);
+        $response = NE_Network::curlRequest($this->settings, 'https://secure.quantumgateway.com/cgi/clientexecT.php', $request, false, false, false, 'POST', false, $masks);
 
         // response is a "|"-separated string for payments, and just a string for refunds...
         if (!$isRefund) {
@@ -330,7 +330,7 @@ class PluginQuantum extends GatewayPlugin
             '<GatewayLogin>XXX MASKED XXX</GatewayLogin>' => '/<GatewayLogin>(.*)<\/GatewayLogin>/',
             '<GatewayKey>XXX MASKED XXX</GatewayKey>'     => '/<GatewayKey>(.*)<\/GatewayKey>/'
         );
-        $response = NE_Network::curlRequest($this->settings, $url, $xml, false, true, false, 'POST', false, $mask);
+        $response = NE_Network::curlRequest($this->settings, $url, $xml, false, false, false, 'POST', false, $mask);
 
         if ($response) {
             $response = XmlFunctions::xmlize(
